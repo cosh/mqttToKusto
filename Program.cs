@@ -5,7 +5,6 @@ using System.Threading.Tasks;
 using System.Text;
 using System.Collections.Concurrent;
 using MQTTnet.Extensions.ManagedClient;
-using MQTTnet.Client.Options;
 using MQTTnet;
 using Kusto.Ingest;
 using Kusto.Data;
@@ -15,6 +14,9 @@ using Microsoft.Extensions.Configuration;
 using System.Collections.Generic;
 using Microsoft.Extensions.Logging;
 using Azure.Identity;
+using MQTTnet.Client;
+using MQTTnet.Packets;
+using Microsoft.VisualBasic;
 
 namespace mqttToKusto
 {
@@ -205,17 +207,16 @@ namespace mqttToKusto
             var mqttClient = new MqttFactory().CreateManagedMqttClient();
 
             await mqttClient.SubscribeAsync(topicFilter); 
-            mqttClient.UseApplicationMessageReceivedHandler(
-                msg => {
+            mqttClient.ApplicationMessageReceivedAsync
+                += msg  =>
+                    {
+                        var topic = msg.ApplicationMessage.Topic;
+                        messages[topic].Enqueue(msg);
 
-                    var topic = msg.ApplicationMessage.Topic;
-                    messages[topic].Enqueue(msg);
-                }
-            );
+                        return Task.CompletedTask;
+                    };
 
-            mqttClient.UseConnectedHandler(
-                (arg) => logger.LogInformation($"Establish connection to {url} {arg.ConnectResult.ResultCode}")
-            );
+            mqttClient.ConnectedAsync += async e => logger.LogInformation($"Establish connection to {url} {e.ConnectResult.ResultCode}");
 
             await mqttClient.StartAsync(options);
         }
