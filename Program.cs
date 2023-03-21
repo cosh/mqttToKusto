@@ -114,7 +114,7 @@ namespace mqttToKusto
                 {
                     if (eventCount > 0)
                     {
-                        string tempFile = Path.GetRandomFileName();
+                        string tempFile = Path.GetTempFileName();
                         File.WriteAllText(tempFile, sb.ToString());
 
                         ingestionJobs.Enqueue(new IngestionJob() { ToBeIngested = tempFile, Subcription = subscription });
